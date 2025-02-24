@@ -82,8 +82,15 @@ body {
   transform: translateY(-2px);
 }
 
+.timer-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
 .timer-tag input {
-  width: 100%;
+  flex-grow: 1;
   padding: 12px;
   background-color: var(--secondary-color);
   color: var(--text-primary);
@@ -160,4 +167,19 @@ body {
   padding: 10px;
   cursor: pointer;
   z-index: 1001;
+}
+
+.active-timers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.active-timer {
+  background: var(--secondary-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-align: center;
 }

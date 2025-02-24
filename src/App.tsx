@@ -33,7 +33,7 @@ function formatDate(timestamp: number): string {
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeTimer, setActiveTimer] = useState<Timer | null>(null);
+  const [activeTimers, setActiveTimers] = useState<Timer[]>([]);
   const [timerTag, setTimerTag] = useState<string>('Untitled');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarFullscreen, setSidebarFullscreen] = useState(false);
@@ -72,75 +72,75 @@ function App() {
   
   // Stopwatch effect
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
-    if (activeTimer && activeTimer.isRunning) {
-      timer = setInterval(() => {
-        setActiveTimer(prev => 
-          prev ? { ...prev, elapsed: Date.now() - prev.startTS } : null
-        );
-      }, 10);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [activeTimer, activeTimer?.isRunning]);
+    const intervalId = setInterval(() => {
+      setActiveTimers(prevTimers =>
+        prevTimers.map(timer =>
+          timer.isRunning
+            ? { ...timer, elapsed: Date.now() - timer.startTS }
+            : timer
+        )
+      );
+    }, 10);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleStart = () => {
-    if (!activeTimer) {
-      setActiveTimer({
-        id: Date.now().toString(),
-        startTS: Date.now(),
-        elapsed: 0,
-        isRunning: true,
-        tag: timerTag
-      });
-    }
+    const newTimer: Timer = {
+      id: Date.now().toString(),
+      startTS: Date.now(),
+      elapsed: 0,
+      isRunning: true,
+      tag: timerTag
+    };
+    setActiveTimers(prev => [...prev, newTimer]);
+    setTimerTag('Untitled');
   };
 
-  const handleStop = () => {
-    if (activeTimer && activeTimer.isRunning) {
-      setActiveTimer({ ...activeTimer, isRunning: false });
-    }
+  const handleTagChange = (id: string, newTag: string) => {
+    setActiveTimers(prev =>
+      prev.map(timer =>
+        timer.id === id ? { ...timer, tag: newTag } : timer
+      )
+    );
   };
 
-  const handleResume = () => {
-    if (activeTimer && !activeTimer.isRunning) {
-      setActiveTimer({
-        ...activeTimer,
-        startTS: Date.now() - activeTimer.elapsed,
-        isRunning: true
-      });
-    }
+  const handleStop = (id: string) => {
+    setActiveTimers(prev =>
+      prev.map(timer =>
+        timer.id === id ? { ...timer, isRunning: false } : timer
+      )
+    );
   };
 
-  const handleSave = () => {
-    if (activeTimer) {
+  const handleResume = (id: string) => {
+    setActiveTimers(prev =>
+      prev.map(timer =>
+        timer.id === id
+          ? { ...timer, startTS: Date.now() - timer.elapsed, isRunning: true }
+          : timer
+      )
+    );
+  };
+
+  const handleSave = (id: string) => {
+    const timerToSave = activeTimers.find(timer => timer.id === id);
+    if (timerToSave) {
       const savedTimer: SavedTimer = {
-        id: activeTimer.id,
-        startTS: activeTimer.startTS,
+        id: timerToSave.id,
+        startTS: timerToSave.startTS,
         endTS: Date.now(),
-        elapsed: activeTimer.elapsed,
-        tag: activeTimer.tag
+        elapsed: timerToSave.elapsed,
+        tag: timerToSave.tag
       };
       
       const updatedTimers = [...savedTimers, savedTimer];
       setSavedTimers(updatedTimers);
       
       // Update recent tags with the saved timer's tag
-      updateRecentTags(activeTimer.tag);
+      updateRecentTags(timerToSave.tag);
       
-      setActiveTimer(null);
-      setTimerTag('Untitled'); // Reset tag for next timer
-    }
-  };
-
-  const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTag = e.target.value;
-    setTimerTag(newTag);
-    
-    // If there's an active timer, update its tag as well
-    if (activeTimer) {
-      setActiveTimer({ ...activeTimer, tag: newTag });
+      setActiveTimers(prev => prev.filter(timer => timer.id !== id));
     }
   };
 
@@ -246,56 +246,53 @@ function App() {
         <div className="divider"></div>
         
         <div className="stopwatch">
-          <h2>Stopwatch</h2>
-          
-          {activeTimer ? (
-            <>
-              <div className="timer-tag">
-                <input 
-                  type="text" 
-                  value={activeTimer.tag} 
-                  onChange={handleTagChange}
-                  placeholder="Enter timer tag"
-                  list="tag-suggestions"
-                />
-              </div>
-              <h1>{formatTime(activeTimer.elapsed)}</h1>
-              <div className="timer-info">
-                Started: {formatDate(activeTimer.startTS)}
-              </div>
-              <div className="controls">
-                {activeTimer.isRunning ? (
-                  <button onClick={handleStop}>Stop</button>
-                ) : (
-                  <>
-                    <button onClick={handleResume}>Resume</button>
-                    <button onClick={handleSave}>Save</button>
-                  </>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="timer-tag">
-                <input 
-                  type="text" 
-                  value={timerTag} 
-                  onChange={handleTagChange}
-                  placeholder="Enter timer tag"
-                  list="tag-suggestions"
-                />
-              </div>
-              <div className="controls">
-                <button onClick={handleStart}>Start Timer</button>
-              </div>
-            </>
-          )}
+          <h2>New Timer</h2>
+          <div className="timer-tag">
+            <input 
+              type="text" 
+              value={timerTag} 
+              onChange={(e) => setTimerTag(e.target.value)}
+              placeholder="Enter timer tag"
+              list="tag-suggestions"
+            />
+            <button onClick={handleStart}>Start Timer</button>
+          </div>
           
           <datalist id="tag-suggestions">
             {tagSuggestions.map((tag, index) => (
               <option key={index} value={tag} />
             ))}
           </datalist>
+        </div>
+
+        <div className="active-timers">
+          {activeTimers.map(timer => (
+            <div key={timer.id} className="active-timer">
+              <div className="timer-tag">
+                <input 
+                  type="text" 
+                  value={timer.tag}
+                  onChange={(e) => handleTagChange(timer.id, e.target.value)}
+                  placeholder="Enter timer tag"
+                  list="tag-suggestions"
+                />
+              </div>
+              <h1>{formatTime(timer.elapsed)}</h1>
+              <div className="timer-info">
+                Started: {formatDate(timer.startTS)}
+              </div>
+              <div className="controls">
+                {timer.isRunning ? (
+                  <button onClick={() => handleStop(timer.id)}>Stop</button>
+                ) : (
+                  <>
+                    <button onClick={() => handleResume(timer.id)}>Resume</button>
+                    <button onClick={() => handleSave(timer.id)}>Save</button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
