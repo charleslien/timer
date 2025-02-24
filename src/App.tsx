@@ -333,7 +333,7 @@ function App() {
                     <button onClick={() => handleSave(timer.id)}>Stop & Save</button>
                   </>
                 ) : (
-                  <button onClick={() => handleResumeAndSave(timer.id)}>Resume</button>
+                  <button onClick={() => handleResumeAndSave(timer.id)}>Save & Start</button>
                 )}
               </div>
             </div>
