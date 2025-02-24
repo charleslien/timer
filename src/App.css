@@ -3,14 +3,16 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
   background-color: white;
   padding: 20px;
 }
 
-.clock, .stopwatch {
+.clock, .stopwatch, .saved-timers {
   text-align: center;
   margin: 20px 0;
+  width: 100%;
+  max-width: 600px;
 }
 
 .time-display {
@@ -23,7 +25,7 @@
   margin: 10px 0;
 }
 
-.stopwatch h2, .clock h2 {
+.stopwatch h2, .clock h2, .saved-timers h2 {
   margin-bottom: 10px;
   color: #333;
 }
@@ -44,4 +46,65 @@
   height: 1px;
   background-color: #ccc;
   margin: 20px 0;
+}
+
+.timer-tag {
+  margin: 10px 0;
+}
+
+.timer-tag input {
+  padding: 8px;
+  font-size: 16px;
+  width: 80%;
+  max-width: 300px;
+  text-align: center;
+}
+
+.timer-info {
+  font-size: 14px;
+  color: #666;
+  margin: 5px 0;
+}
+
+.saved-timers {
+  text-align: left;
+}
+
+.timer-group {
+  margin-bottom: 20px;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.timer-group h3 {
+  margin: 0 0 10px 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.saved-timers ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.saved-timer-item {
+  padding: 10px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.saved-timer-item:last-child {
+  border-bottom: none;
+}
+
+.saved-timer-time {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.saved-timer-info {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
 }
