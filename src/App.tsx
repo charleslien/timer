@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
 
 // Define types for our timer
@@ -126,6 +126,9 @@ function App() {
       const updatedTimers = [...savedTimers, savedTimer];
       setSavedTimers(updatedTimers);
       
+      // Update recent tags with the saved timer's tag
+      updateRecentTags(activeTimer.tag);
+      
       setActiveTimer(null);
       setTimerTag('Untitled'); // Reset tag for next timer
     }
@@ -149,6 +152,35 @@ function App() {
     setSidebarFullscreen(!isSidebarFullscreen);
   };
 
+  const [recentTags, setRecentTags] = useState<string[]>(() => {
+    try {
+      const storedTags = localStorage.getItem('recentTags');
+      return storedTags ? JSON.parse(storedTags) : [];
+    } catch (err) {
+      console.error('Error loading recent tags:', err);
+      return [];
+    }
+  });
+
+  const updateRecentTags = (tag: string) => {
+    setRecentTags(prevTags => {
+      // Remove existing instance of the tag and add to the front
+      const filteredTags = prevTags.filter(t => t !== tag);
+      const updatedTags = [tag, ...filteredTags].slice(0, 10); // Limit to 10 recent tags
+      
+      try {
+        localStorage.setItem('recentTags', JSON.stringify(updatedTags));
+      } catch (err) {
+        console.error('Error saving recent tags:', err);
+      }
+      
+      return updatedTags;
+    });
+  };
+
+  // Compute unique saved tags from savedTimers for the dropdown suggestions
+  const savedTags = Array.from(new Set(savedTimers.map(timer => timer.tag)));
+
   // Group saved timers by tag
   const groupedTimers: Record<string, SavedTimer[]> = {};
   savedTimers.forEach(timer => {
@@ -160,6 +192,14 @@ function App() {
   Object.keys(groupedTimers).forEach(tag => {
     groupedTimers[tag].sort((a, b) => a.endTS - b.endTS);
   });
+
+  // Memoized list of recent tags for performance
+  const tagSuggestions = useMemo(() => {
+    // Combine recent tags with unique tags from saved timers
+    const savedTagSet = new Set(savedTimers.map(timer => timer.tag));
+    const combinedTags = Array.from(new Set([...recentTags, ...Array.from(savedTagSet)]));
+    return combinedTags;
+  }, [recentTags, savedTimers]);
 
   return (
     <div className="App">
@@ -216,6 +256,7 @@ function App() {
                   value={activeTimer.tag} 
                   onChange={handleTagChange}
                   placeholder="Enter timer tag"
+                  list="tag-suggestions"
                 />
               </div>
               <h1>{formatTime(activeTimer.elapsed)}</h1>
@@ -241,6 +282,7 @@ function App() {
                   value={timerTag} 
                   onChange={handleTagChange}
                   placeholder="Enter timer tag"
+                  list="tag-suggestions"
                 />
               </div>
               <div className="controls">
@@ -248,6 +290,12 @@ function App() {
               </div>
             </>
           )}
+          
+          <datalist id="tag-suggestions">
+            {tagSuggestions.map((tag, index) => (
+              <option key={index} value={tag} />
+            ))}
+          </datalist>
         </div>
       </div>
     </div>
