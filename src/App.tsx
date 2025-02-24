@@ -123,6 +123,33 @@ function App() {
     );
   };
 
+  const handleResumeAndSave = (id: string) => {
+    setActiveTimers(prev => {
+      const index = prev.findIndex(timer => timer.id === id);
+      if (index === -1) return prev;
+      const timerToSave = prev[index];
+      const savedTimer: SavedTimer = {
+        id: timerToSave.id,
+        startTS: timerToSave.startTS,
+        endTS: Date.now(),
+        elapsed: timerToSave.elapsed,
+        tag: timerToSave.tag
+      };
+      setSavedTimers(old => [...old, savedTimer]);
+      updateRecentTags(timerToSave.tag);
+      const newTimer: Timer = {
+        id: Date.now().toString(),
+        startTS: Date.now(),
+        elapsed: 0,
+        isRunning: true,
+        tag: timerToSave.tag
+      };
+      const newActiveTimers = [...prev];
+      newActiveTimers[index] = newTimer;
+      return newActiveTimers;
+    });
+  };
+
   const handleSave = (id: string) => {
     const timerToSave = activeTimers.find(timer => timer.id === id);
     if (timerToSave) {
@@ -137,7 +164,6 @@ function App() {
       const updatedTimers = [...savedTimers, savedTimer];
       setSavedTimers(updatedTimers);
       
-      // Update recent tags with the saved timer's tag
       updateRecentTags(timerToSave.tag);
       
       setActiveTimers(prev => prev.filter(timer => timer.id !== id));
@@ -164,24 +190,14 @@ function App() {
 
   const updateRecentTags = (tag: string) => {
     setRecentTags(prevTags => {
-      // Remove existing instance of the tag and add to the front
-      const filteredTags = prevTags.filter(t => t !== tag);
-      const updatedTags = [tag, ...filteredTags].slice(0, 10); // Limit to 10 recent tags
-      
-      try {
-        localStorage.setItem('recentTags', JSON.stringify(updatedTags));
-      } catch (err) {
-        console.error('Error saving recent tags:', err);
-      }
-      
-      return updatedTags;
+      const savedTagSet = new Set(savedTimers.map(timer => timer.tag));
+      const combinedTags = Array.from(new Set([...recentTags, ...Array.from(savedTagSet)]));
+      return combinedTags;
     });
   };
 
-  // Compute unique saved tags from savedTimers for the dropdown suggestions
   const savedTags = Array.from(new Set(savedTimers.map(timer => timer.tag)));
 
-  // Group saved timers by tag
   const groupedTimers: Record<string, SavedTimer[]> = {};
   savedTimers.forEach(timer => {
     if (!groupedTimers[timer.tag]) {
@@ -193,9 +209,7 @@ function App() {
     groupedTimers[tag].sort((a, b) => a.endTS - b.endTS);
   });
 
-  // Memoized list of recent tags for performance
   const tagSuggestions = useMemo(() => {
-    // Combine recent tags with unique tags from saved timers
     const savedTagSet = new Set(savedTimers.map(timer => timer.tag));
     const combinedTags = Array.from(new Set([...recentTags, ...Array.from(savedTagSet)]));
     return combinedTags;
@@ -288,10 +302,7 @@ function App() {
                     <button onClick={() => handleSave(timer.id)}>Stop & Save</button>
                   </>
                 ) : (
-                  <>
-                    <button onClick={() => handleResume(timer.id)}>Resume</button>
-                    <button onClick={() => handleSave(timer.id)}>Save</button>
-                  </>
+                  <button onClick={() => handleResumeAndSave(timer.id)}>Resume</button>
                 )}
               </div>
             </div>
