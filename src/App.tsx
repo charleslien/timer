@@ -34,7 +34,7 @@ function formatDate(timestamp: number): string {
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTimers, setActiveTimers] = useState<Timer[]>([]);
-  const [timerTag, setTimerTag] = useState<string>('Untitled');
+  const [timerTag, setTimerTag] = useState<string>('Timer');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarFullscreen, setSidebarFullscreen] = useState(false);
   
@@ -94,7 +94,7 @@ function App() {
       tag: timerTag
     };
     setActiveTimers(prev => [...prev, newTimer]);
-    setTimerTag('Untitled');
+    setTimerTag('Timer');
   };
 
   const handleTagChange = (id: string, newTag: string) => {
