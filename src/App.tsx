@@ -35,6 +35,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTimer, setActiveTimer] = useState<Timer | null>(null);
   const [timerTag, setTimerTag] = useState<string>('Untitled');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Use lazy initialization to load saved timers from localStorage once on mount
   const [savedTimers, setSavedTimers] = useState<SavedTimer[]>(() => {
@@ -139,6 +140,10 @@ function App() {
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   // Group saved timers by tag
   const groupedTimers: Record<string, SavedTimer[]> = {};
   savedTimers.forEach(timer => {
@@ -155,88 +160,91 @@ function App() {
 
   return (
     <div className="App">
-      <div className="clock">
-        <h2>Current Time</h2>
-        <div className="time-display">
-          {currentTime.toLocaleTimeString()}
-        </div>
-      </div>
-      
-      <div className="divider"></div>
-      
-      <div className="stopwatch">
-        <h2>Stopwatch</h2>
-        
-        {activeTimer ? (
-          <>
-            <div className="timer-tag">
-              <input 
-                type="text" 
-                value={activeTimer.tag} 
-                onChange={handleTagChange}
-                placeholder="Enter timer tag"
-              />
-            </div>
-            <h1>{formatTime(activeTimer.elapsed)}</h1>
-            <div className="timer-info">
-              Started: {formatDate(activeTimer.startTS)}
-            </div>
-            <div className="controls">
-              {activeTimer.isRunning ? (
-                <button onClick={handleStop}>Stop</button>
-              ) : (
-                <>
-                  <button onClick={handleResume}>Resume</button>
-                  <button onClick={handleSave}>Save</button>
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="timer-tag">
-              <input 
-                type="text" 
-                value={timerTag} 
-                onChange={handleTagChange}
-                placeholder="Enter timer tag"
-              />
-            </div>
-            <div className="controls">
-              <button onClick={handleStart}>Start Timer</button>
-            </div>
-          </>
+      <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <button className="sidebar-toggle" onClick={toggleSidebar}>
+          {isSidebarOpen ? '→' : '←'}
+        </button>
+        {Object.keys(groupedTimers).length > 0 && (
+          <div className="saved-timers">
+            <h2>Saved Intervals</h2>
+            
+            {Object.entries(groupedTimers).map(([tag, timers]) => (
+              <div key={tag} className="timer-group">
+                <h3>{tag}</h3>
+                <ul>
+                  {timers.map((timer) => (
+                    <li key={timer.id} className="saved-timer-item">
+                      <div className="saved-timer-time">{formatTime(timer.elapsed)}</div>
+                      <div className="saved-timer-info">
+                        Started: {formatDate(timer.startTS)}
+                      </div>
+                      <div className="saved-timer-info">
+                        Ended: {formatDate(timer.endTS)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-      
-      {Object.keys(groupedTimers).length > 0 && (
-        <div className="divider"></div>
-      )}
-      
-      {Object.keys(groupedTimers).length > 0 && (
-        <div className="saved-timers">
-          <h2>Saved Intervals</h2>
-          
-          {Object.entries(groupedTimers).map(([tag, timers]) => (
-            <div key={tag} className="timer-group">
-              <h3>{tag}</h3>
-              <ul>
-                {timers.map((timer) => (
-                  <li key={timer.id} className="saved-timer-item">
-                    <div className="saved-timer-time">{formatTime(timer.elapsed)}</div>
-                    <div className="saved-timer-info">
-                      Started: {formatDate(timer.startTS)}
-                    </div>
-                    <div className="saved-timer-info">
-                      Ended: {formatDate(timer.endTS)}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+        <div className="clock">
+          <h2>Current Time</h2>
+          <div className="time-display">
+            {currentTime.toLocaleTimeString()}
+          </div>
         </div>
-      )}
+        
+        <div className="divider"></div>
+        
+        <div className="stopwatch">
+          <h2>Stopwatch</h2>
+          
+          {activeTimer ? (
+            <>
+              <div className="timer-tag">
+                <input 
+                  type="text" 
+                  value={activeTimer.tag} 
+                  onChange={handleTagChange}
+                  placeholder="Enter timer tag"
+                />
+              </div>
+              <h1>{formatTime(activeTimer.elapsed)}</h1>
+              <div className="timer-info">
+                Started: {formatDate(activeTimer.startTS)}
+              </div>
+              <div className="controls">
+                {activeTimer.isRunning ? (
+                  <button onClick={handleStop}>Stop</button>
+                ) : (
+                  <>
+                    <button onClick={handleResume}>Resume</button>
+                    <button onClick={handleSave}>Save</button>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="timer-tag">
+                <input 
+                  type="text" 
+                  value={timerTag} 
+                  onChange={handleTagChange}
+                  placeholder="Enter timer tag"
+                />
+              </div>
+              <div className="controls">
+                <button onClick={handleStart}>Start Timer</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

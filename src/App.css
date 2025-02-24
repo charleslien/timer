@@ -1,11 +1,41 @@
 .App {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
   background-color: white;
+}
+
+.sidebar {
+  width: 0;
+  background-color: #f4f4f4;
+  transition: width 0.3s ease;
+  overflow-x: hidden;
+  position: relative;
+  border-right: 1px solid #e0e0e0;
+}
+
+.sidebar.open {
+  width: 350px;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  right: -40px;
+  background-color: #f4f4f4;
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.main-content {
+  flex-grow: 1;
   padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.sidebar-open {
+  margin-left: -350px;
 }
 
 .clock, .stopwatch, .saved-timers {
@@ -68,6 +98,9 @@
 
 .saved-timers {
   text-align: left;
+  padding: 20px;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .timer-group {
