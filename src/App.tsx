@@ -283,7 +283,10 @@ function App() {
               </div>
               <div className="controls">
                 {timer.isRunning ? (
-                  <button onClick={() => handleStop(timer.id)}>Stop</button>
+                  <>
+                    <button onClick={() => handleStop(timer.id)}>Stop</button>
+                    <button onClick={() => handleSave(timer.id)}>Stop & Save</button>
+                  </>
                 ) : (
                   <>
                     <button onClick={() => handleResume(timer.id)}>Resume</button>
