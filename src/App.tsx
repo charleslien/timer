@@ -33,11 +33,42 @@ function formatDate(timestamp: number): string {
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeTimers, setActiveTimers] = useState<Timer[]>([]);
+  
+  // Use lazy initialization to load active timers from localStorage
+  const [activeTimers, setActiveTimers] = useState<Timer[]>(() => {
+    try {
+      const storedTimers = localStorage.getItem('activeTimers');
+      if (storedTimers) {
+        const parsedTimers: Timer[] = JSON.parse(storedTimers);
+        // Recalculate elapsed time based on current time
+        return parsedTimers.map(timer => ({
+          ...timer,
+          elapsed: timer.isRunning 
+            ? Date.now() - timer.startTS + timer.elapsed 
+            : timer.elapsed
+        }));
+      }
+      return [];
+    } catch (err) {
+      console.error('Error loading active timers from localStorage:', err);
+      return [];
+    }
+  });
+
   const [timerTag, setTimerTag] = useState<string>('Timer');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarFullscreen, setSidebarFullscreen] = useState(false);
   
+  // Persist active timers to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('activeTimers', JSON.stringify(activeTimers));
+      console.log('Saved active timers to localStorage:', activeTimers);
+    } catch (err) {
+      console.error('Error saving active timers to localStorage:', err);
+    }
+  }, [activeTimers]);
+
   // Use lazy initialization to load saved timers from localStorage once on mount
   const [savedTimers, setSavedTimers] = useState<SavedTimer[]>(() => {
     try {
@@ -76,7 +107,7 @@ function App() {
       setActiveTimers(prevTimers =>
         prevTimers.map(timer =>
           timer.isRunning
-            ? { ...timer, elapsed: Date.now() - timer.startTS }
+            ? { ...timer, elapsed: Date.now() - timer.startTS + timer.elapsed }
             : timer
         )
       );
