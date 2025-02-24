@@ -36,6 +36,7 @@ function App() {
   const [activeTimer, setActiveTimer] = useState<Timer | null>(null);
   const [timerTag, setTimerTag] = useState<string>('Untitled');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarFullscreen, setSidebarFullscreen] = useState(false);
   
   // Use lazy initialization to load saved timers from localStorage once on mount
   const [savedTimers, setSavedTimers] = useState<SavedTimer[]>(() => {
@@ -144,6 +145,10 @@ function App() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const toggleSidebarFullscreen = () => {
+    setSidebarFullscreen(!isSidebarFullscreen);
+  };
+
   // Group saved timers by tag
   const groupedTimers: Record<string, SavedTimer[]> = {};
   savedTimers.forEach(timer => {
@@ -152,22 +157,22 @@ function App() {
     }
     groupedTimers[timer.tag].push(timer);
   });
-
-  // Sort timers within each group by end time
   Object.keys(groupedTimers).forEach(tag => {
     groupedTimers[tag].sort((a, b) => a.endTS - b.endTS);
   });
 
   return (
     <div className="App">
-      <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+      <div className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isSidebarFullscreen ? 'fullscreen' : ''}`}>
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           {isSidebarOpen ? '→' : '←'}
+        </button>
+        <button className="sidebar-fullscreen-toggle" onClick={toggleSidebarFullscreen}>
+          {isSidebarFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
         </button>
         {Object.keys(groupedTimers).length > 0 && (
           <div className="saved-timers">
             <h2>Saved Intervals</h2>
-            
             {Object.entries(groupedTimers).map(([tag, timers]) => (
               <div key={tag} className="timer-group">
                 <h3>{tag}</h3>
