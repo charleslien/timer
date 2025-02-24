@@ -10,11 +10,11 @@ type Timer = {
   tag: string;
 };
 
+// Modify the SavedTimer type to only store start and end times
 type SavedTimer = {
   id: string;
   startTS: number;
   endTS: number;
-  elapsed: number;
   tag: string;
 };
 
@@ -163,7 +163,6 @@ function App() {
         id: timerToSave.id,
         startTS: timerToSave.startTS,
         endTS: Date.now(),
-        elapsed: timerToSave.elapsed,
         tag: timerToSave.tag
       };
       setSavedTimers(old => [...old, savedTimer]);
@@ -188,7 +187,6 @@ function App() {
         id: timerToSave.id,
         startTS: timerToSave.startTS,
         endTS: Date.now(),
-        elapsed: timerToSave.elapsed,
         tag: timerToSave.tag
       };
       
@@ -264,7 +262,9 @@ function App() {
                 <ul>
                   {timers.map((timer) => (
                     <li key={timer.id} className="saved-timer-item">
-                      <div className="saved-timer-time">{formatTime(timer.elapsed)}</div>
+                      <div className="saved-timer-time">
+                        {formatTime(timer.endTS - timer.startTS)}
+                      </div>
                       <div className="saved-timer-info">
                         Started: {formatDate(timer.startTS)}
                       </div>
