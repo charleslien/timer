@@ -107,7 +107,7 @@ function App() {
       setActiveTimers(prevTimers =>
         prevTimers.map(timer =>
           timer.isRunning
-            ? { ...timer, elapsed: Date.now() - timer.startTS + timer.elapsed }
+            ? { ...timer, elapsed: timer.elapsed + 10 }
             : timer
         )
       );
