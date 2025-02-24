@@ -5,10 +5,10 @@
 }
 
 .sidebar {
-  width: 0;
+  width: 50px;
   background-color: #f4f4f4;
   transition: width 0.3s ease;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   border-right: 1px solid #e0e0e0;
 }
@@ -20,7 +20,7 @@
 .sidebar-toggle {
   position: absolute;
   top: 20px;
-  right: -40px;
+  left: 0;
   background-color: #f4f4f4;
   border: 1px solid #e0e0e0;
   padding: 10px;
@@ -35,7 +35,7 @@
 }
 
 .main-content.sidebar-open {
-  margin-left: -350px;
+  margin-left: -300px;
 }
 
 .clock, .stopwatch, .saved-timers {
