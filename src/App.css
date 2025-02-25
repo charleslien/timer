@@ -183,3 +183,24 @@ body {
   box-shadow: 0 4px 6px rgba(0,0,0,0.2);
   text-align: center;
 }
+
+.sidebar:not(.open) .notification-button {
+  width: 40px;
+  height: 40px;
+  margin: 15px 5px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-indent: -9999px;
+  position: relative;
+}
+
+.sidebar:not(.open) .notification-button::after {
+  content: "🔔";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-indent: 0;
+  font-size: 20px;
+}

@@ -10,12 +10,13 @@ type Timer = {
   tag: string;
 };
 
-// Modify the SavedTimer type to only store start and end times
+// Modify the SavedTimer type to include the gap between intervals
 type SavedTimer = {
   id: string;
   startTS: number;
   endTS: number;
   tag: string;
+  prevEndTS?: number; // Track the end timestamp of the previous interval
 };
 
 function formatTime(ms: number): string {
@@ -29,6 +30,106 @@ function formatTime(ms: number): string {
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleString();
+}
+
+function sendActualNotification() {
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification('Timer App', {
+          body: 'This is a test notification from the Timer App!',
+          icon: '/favicon.ico'
+        });
+        
+        // Focus the window when notification is clicked
+        notification.onclick = function() {
+          window.focus();
+        };
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        alert('Failed to send notification: ' + (error instanceof Error ? error.message : String(error)));
+      }
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          try {
+            const notification = new Notification('Timer App', {
+              body: 'This is a test notification from the Timer App!',
+              icon: '/favicon.ico'
+            });
+            
+            // Focus the window when notification is clicked
+            notification.onclick = function() {
+              window.focus();
+            };
+            console.log('Notification sent successfully after permission granted');
+          } catch (error) {
+            console.error('Error sending notification after permission granted:', error);
+            alert('Failed to send notification: ' + (error instanceof Error ? error.message : String(error)));
+          }
+        } else {
+          console.warn('Notification permission denied');
+          alert('Notification permission denied by user');
+        }
+      }).catch(error => {
+        console.error('Error requesting notification permission:', error);
+        alert('Failed to request notification permission: ' + (error instanceof Error ? error.message : String(error)));
+      });
+    } else {
+      console.warn('Notification permission previously denied');
+      alert('Notifications are blocked. Please enable them in your browser settings.');
+    }
+  } else {
+    console.error('Notifications not supported in this browser');
+    alert('Desktop notifications are not supported in this browser.');
+  }
+}
+
+function sendTaskReminderNotification(tag: string) {
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification('Timer Reminder', {
+          body: `Your timer for "${tag}" is running longer than previous records. Are you still doing the task?`,
+          icon: '/favicon.ico'
+        });
+        
+        // Focus the window when notification is clicked
+        notification.onclick = function() {
+          window.focus();
+        };
+      } catch (error) {
+        console.error('Error sending task reminder notification:', error);
+      }
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          try {
+            const notification = new Notification('Timer Reminder', {
+              body: `Your timer for "${tag}" is running longer than previous records. Are you still doing the task?`,
+              icon: '/favicon.ico'
+            });
+            
+            // Focus the window when notification is clicked
+            notification.onclick = function() {
+              window.focus();
+            };
+            console.log(`Task reminder notification sent for tag: ${tag} after permission granted`);
+          } catch (error) {
+            console.error('Error sending task reminder notification after permission granted:', error);
+          }
+        } else {
+          console.warn('Notification permission denied for task reminder');
+        }
+      }).catch(error => {
+        console.error('Error requesting notification permission for task reminder:', error);
+      });
+    } else {
+      console.warn('Notification permission previously denied for task reminder');
+    }
+  } else {
+    console.error('Notifications not supported in this browser for task reminder');
+  }
 }
 
 function App() {
@@ -58,12 +159,16 @@ function App() {
   const [timerTag, setTimerTag] = useState<string>('Timer');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarFullscreen, setSidebarFullscreen] = useState(false);
+  const [isNotificationPending, setIsNotificationPending] = useState(false);
+  const [notificationCountdown, setNotificationCountdown] = useState(0);
+  
+  // Track which timers have been notified and when
+  const [notificationHistory, setNotificationHistory] = useState<Record<string, number[]>>({});
   
   // Persist active timers to localStorage whenever they change
   useEffect(() => {
     try {
       localStorage.setItem('activeTimers', JSON.stringify(activeTimers));
-      console.log('Saved active timers to localStorage:', activeTimers);
     } catch (err) {
       console.error('Error saving active timers to localStorage:', err);
     }
@@ -116,6 +221,73 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Check for timers exceeding their historical longest duration
+  useEffect(() => {
+    const now = Date.now();
+    
+    activeTimers.forEach(timer => {
+      if (timer.isRunning) {
+        const savedForTag = savedTimers.filter(st => st.tag === timer.tag);
+        
+        if (savedForTag.length > 0) {
+          const longestElapsed = Math.max(...savedForTag.map(st => st.endTS - st.startTS));
+          const longestGap = savedForTag.reduce((maxGap, current, index, arr) => {
+            if (index > 0) {
+              const gap = current.startTS - arr[index - 1].endTS;
+              return Math.max(maxGap, gap);
+            }
+            return maxGap;
+          }, 0);
+          
+          const currentElapsed = timer.elapsed;
+          const currentGap = savedForTag[savedForTag.length - 1].prevEndTS 
+            ? now - savedForTag[savedForTag.length - 1].prevEndTS! 
+            : 0;
+          
+          const timerNotifications = notificationHistory[timer.id] || [];
+          
+          const shouldNotifyDuration = currentElapsed > longestElapsed && 
+            (timerNotifications.length === 0 || 
+              (now - timerNotifications[timerNotifications.length - 1] > 
+                calculateNextNotificationDelay(timerNotifications, longestElapsed)));
+          
+          const shouldNotifyGap = currentGap > longestGap && 
+            (timerNotifications.length === 0 || 
+              (now - timerNotifications[timerNotifications.length - 1] > 
+                calculateNextNotificationDelay(timerNotifications, longestGap)));
+          
+          if (shouldNotifyDuration || shouldNotifyGap) {
+            sendTaskReminderNotification(timer.tag);
+            
+            // Update notification history
+            setNotificationHistory(prev => ({
+              ...prev,
+              [timer.id]: [...(prev[timer.id] || []), now]
+            }));
+          }
+        } else {
+          console.log(`No saved timers found for tag: ${timer.tag}`);
+        }
+      }
+    });
+  }, [activeTimers, savedTimers, notificationHistory]);
+
+  // Calculate the next notification delay using exponential backoff with factor 2
+  const calculateNextNotificationDelay = (notificationTimes: number[], longestInterval: number): number => {
+    if (notificationTimes.length <= 1) {
+      // First notification after exceeding record: use the longest interval
+      return Math.max(longestInterval, 3600000); // Minimum 1 hour
+    }
+    
+    // Calculate the delay based on the number of previous notifications
+    // Each subsequent notification doubles the delay from the longest interval
+    // Ensure the delay is at least 1 hour
+    return Math.max(
+      Math.pow(2, notificationTimes.length - 1) * longestInterval, 
+      3600000
+    );
+  };
+
   const handleStart = () => {
     const newTimer: Timer = {
       id: Date.now().toString(),
@@ -142,6 +314,13 @@ function App() {
         timer.id === id ? { ...timer, isRunning: false } : timer
       )
     );
+    
+    // Clear notification history for this timer when stopped
+    setNotificationHistory(prev => {
+      const newHistory = {...prev};
+      delete newHistory[id];
+      return newHistory;
+    });
   };
 
   const handleResume = (id: string) => {
@@ -159,14 +338,24 @@ function App() {
       const index = prev.findIndex(timer => timer.id === id);
       if (index === -1) return prev;
       const timerToSave = prev[index];
+      
+      // Find the most recent saved timer for this tag to get its endTS
+      const savedTimersForTag = savedTimers.filter(st => st.tag === timerToSave.tag);
+      const mostRecentSavedTimer = savedTimersForTag.length > 0 
+        ? savedTimersForTag[savedTimersForTag.length - 1] 
+        : undefined;
+
       const savedTimer: SavedTimer = {
         id: timerToSave.id,
         startTS: timerToSave.startTS,
         endTS: Date.now(),
-        tag: timerToSave.tag
+        tag: timerToSave.tag,
+        prevEndTS: mostRecentSavedTimer?.endTS
       };
+      
       setSavedTimers(old => [...old, savedTimer]);
       updateRecentTags(timerToSave.tag);
+      
       const newTimer: Timer = {
         id: Date.now().toString(),
         startTS: Date.now(),
@@ -176,6 +365,14 @@ function App() {
       };
       const newActiveTimers = [...prev];
       newActiveTimers[index] = newTimer;
+      
+      // Clear notification history for the old timer
+      setNotificationHistory(prev => {
+        const newHistory = {...prev};
+        delete newHistory[timerToSave.id];
+        return newHistory;
+      });
+      
       return newActiveTimers;
     });
   };
@@ -183,19 +380,41 @@ function App() {
   const handleSave = (id: string) => {
     const timerToSave = activeTimers.find(timer => timer.id === id);
     if (timerToSave) {
+      // Find the most recent saved timer for this tag to get its endTS
+      const savedTimersForTag = savedTimers.filter(st => st.tag === timerToSave.tag);
+      const mostRecentSavedTimer = savedTimersForTag.length > 0 
+        ? savedTimersForTag[savedTimersForTag.length - 1] 
+        : undefined;
+
       const savedTimer: SavedTimer = {
         id: timerToSave.id,
         startTS: timerToSave.startTS,
         endTS: Date.now(),
-        tag: timerToSave.tag
+        tag: timerToSave.tag,
+        prevEndTS: mostRecentSavedTimer?.endTS
       };
       
-      const updatedTimers = [...savedTimers, savedTimer];
-      setSavedTimers(updatedTimers);
+      // Use a callback form to ensure we're working with the latest state
+      setSavedTimers(prevSavedTimers => {
+        // Check if this timer is already saved to prevent duplicates
+        const isDuplicate = prevSavedTimers.some(timer => timer.id === savedTimer.id);
+        if (isDuplicate) {
+          console.log('Timer already saved, skipping duplicate save');
+          return prevSavedTimers;
+        }
+        return [...prevSavedTimers, savedTimer];
+      });
       
       updateRecentTags(timerToSave.tag);
       
       setActiveTimers(prev => prev.filter(timer => timer.id !== id));
+      
+      // Clear notification history for this timer when saved
+      setNotificationHistory(prev => {
+        const newHistory = {...prev};
+        delete newHistory[id];
+        return newHistory;
+      });
     }
   };
 
@@ -219,8 +438,12 @@ function App() {
 
   const updateRecentTags = (tag: string) => {
     setRecentTags(prevTags => {
+      // Ensure we don't add duplicate tags
+      if (prevTags.includes(tag)) {
+        return prevTags;
+      }
       const savedTagSet = new Set(savedTimers.map(timer => timer.tag));
-      const combinedTags = Array.from(new Set([...recentTags, ...Array.from(savedTagSet)]));
+      const combinedTags = Array.from(new Set([...prevTags, tag, ...Array.from(savedTagSet)]));
       return combinedTags;
     });
   };
@@ -253,6 +476,7 @@ function App() {
         <button className="sidebar-fullscreen-toggle" onClick={toggleSidebarFullscreen}>
           {isSidebarFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
         </button>
+        
         {Object.keys(groupedTimers).length > 0 && (
           <div className="saved-timers">
             <h2>Saved Intervals</h2>
@@ -305,7 +529,7 @@ function App() {
           
           <datalist id="tag-suggestions">
             {tagSuggestions.map((tag, index) => (
-              <option key={index} value={tag} />
+              <option key={`tag-${index}`} value={tag} />
             ))}
           </datalist>
         </div>
